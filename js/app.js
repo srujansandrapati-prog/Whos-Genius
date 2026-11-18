@@ -1,6 +1,16 @@
-import { auth, db, onAuthStateChanged, ref, onValue } from "./firebase-config.js";
+import {
+  auth,
+  db,
+  onAuthStateChanged,
+  ref,
+  onValue,
+  push,
+  set,
+  serverTimestamp
+} from "./firebase-config.js";
 import { ensureQuestionBankSeeded } from "./question-bank.js";
-
+import { ensureBotsSeeded, selectRandomBot, selectBotQuestionsForHuman } from "./bot-engine.js";
+import { QuestionSelectorController } from "./question-selector.js";
 import {
   ensureUserProfile,
   loginWithGoogle,
@@ -15,6 +25,9 @@ const state = {
   currentUser: null,
   userProfile: null,
   questionBank: [],
+  botRoster: [],
+  lastBotId: null,
+  activeMatch: null, // Holds { matchId, mode: 'bot'|'pvp', botProfile, ... }
   authMode: "login"
 };
 
@@ -127,6 +140,105 @@ function setupNavigation() {
     btn.addEventListener("click", () => showScreen(btn.dataset.back));
   });
 
+  const questionSelector = new QuestionSelectorController({
+    getQuestionBank: () => state.questionBank,
+    showToast,
+    onConfirmSelection: async (selectedQuestionIds) => {
+      await handleConfirmQuestions(selectedQuestionIds);
+    }
+  });
+
+  async function startBotFlow() {
+    try {
+      if (state.botRoster.length === 0) {
+        state.botRoster = await ensureBotsSeeded();
+      }
+      const bot = selectRandomBot(state.botRoster, state.lastBotId);
+      state.lastBotId = bot.botId;
+      state.activeMatch = {
+        mode: "bot",
+        botProfile: bot
+      };
+
+      // Populate S07 Bot Introduction Screen
+      document.getElementById("bot-intro-avatar").src = bot.avatar;
+      document.getElementById("bot-intro-name").textContent = bot.displayName;
+      document.getElementById("bot-intro-desc").textContent = bot.personality;
+
+      const diffEl = document.getElementById("bot-intro-diff");
+      diffEl.textContent = bot.fixedDifficulty;
+      diffEl.className = `diff-badge diff-${bot.fixedDifficulty.toLowerCase()}`;
+
+      showScreen("screen-bot-intro");
+    } catch (err) {
+      showToast(err.message || "Could not load bot roster.");
+    }
+  }
+
+  async function handleConfirmQuestions(humanSelectedIds) {
+    showScreen("screen-selection-locked");
+
+    if (state.activeMatch?.mode === "bot") {
+      const bot = state.activeMatch.botProfile;
+      document.getElementById("selection-waiting-msg").textContent =
+        `${bot.displayName} is locking 10 questions for you...`;
+
+      // Bot selects 10 distinct questions for the human player
+      const botSelectedIds = selectBotQuestionsForHuman(state.questionBank, 10);
+
+      // Create server-backed match record in Firebase RTDB
+      const matchRef = push(ref(db, "matches"));
+      const matchId = matchRef.key;
+      const uid = state.currentUser.uid;
+
+      const matchData = {
+        matchId,
+        mode: "bot",
+        state: "QUIZ_READY",
+        createdAt: serverTimestamp(),
+        playerA: {
+          uid,
+          displayName: state.userProfile.displayName,
+          photoURL: state.userProfile.photoURL,
+          selectedForOpponent: humanSelectedIds,
+          selectionLocked: true
+        },
+        playerB: {
+          uid: bot.botId,
+          displayName: bot.displayName,
+          photoURL: bot.avatar,
+          fixedDifficulty: bot.fixedDifficulty,
+          selectedForOpponent: botSelectedIds,
+          selectionLocked: true
+        }
+      };
+
+      await set(matchRef, matchData);
+      state.activeMatch.matchId = matchId;
+      state.activeMatch.assignedQuestionIds = botSelectedIds; // Human answers Bot's 10 picks
+      state.activeMatch.opponentQuestionIds = humanSelectedIds; // Bot answers Human's 10 picks
+
+      showToast(`Both sets locked! Duel vs ${bot.displayName} is ready.`);
+      // Sub-Task 5 will transition directly from here into S10 (7-Minute Quiz Engine)
+    }
+  }
+
+  document.getElementById("btn-play-bot").addEventListener("click", startBotFlow);
+  document.getElementById("btn-mode-bot").addEventListener("click", startBotFlow);
+
+  document.getElementById("btn-play-pvp").addEventListener("click", () => showScreen("screen-mode"));
+
+  document.getElementById("btn-start-bot-select").addEventListener("click", () => {
+    const oppName = state.activeMatch?.botProfile?.displayName || "Bot";
+    questionSelector.resetForNewMatch(oppName);
+    showScreen("screen-select-questions");
+  });
+
+  document.getElementById("btn-leave-selection").addEventListener("click", () => {
+    state.activeMatch = null;
+    showScreen("screen-dashboard");
+  });
+
   const openStats = async () => {
     if (!state.userProfile) return;
     renderStatsScreen(state.userProfile);
@@ -145,14 +257,6 @@ function setupNavigation() {
   document.getElementById("btn-logout").addEventListener("click", async () => {
     await logoutUser();
     showToast("Logged out");
-  });
-
-  // Placeholders wired for Sub-Task 3 & 4
-  document.getElementById("btn-play-bot").addEventListener("click", () => {
-    showToast("Bot Mode unlocks in Sub-Task 3!");
-  });
-  document.getElementById("btn-play-pvp").addEventListener("click", () => {
-    showToast("Multiplayer Rooms unlock in Sub-Task 4!");
   });
 }
 
