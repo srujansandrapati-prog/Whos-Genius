@@ -438,6 +438,103 @@
       </div>
     </section>
 
+        <!-- S13: MATCH RESULTS -->
+    <section id="screen-results" class="screen" aria-label="Match Results">
+      <div class="results-card card-navy">
+        <p class="brand-tagline">Duel Complete</p>
+        <h2 class="brand-title">Match Results</h2>
+
+        <div class="trophy-banner" aria-hidden="true" id="results-trophy-icon">🏆</div>
+
+        <div class="score-duel-grid">
+          <!-- Current Player Score Card -->
+          <div class="score-player-box">
+            <img id="res-my-avatar" src="" alt="Your Avatar" class="avatar-lg" />
+            <h3 id="res-my-name">You</h3>
+            <div class="big-score-line">
+              <strong id="res-my-score" class="score-num text-gold">0</strong>
+              <span class="score-max">/ 100</span>
+            </div>
+          </div>
+
+          <div class="vs-divider" aria-hidden="true">VS</div>
+
+          <!-- Opponent Score Card -->
+          <div class="score-player-box">
+            <img id="res-opp-avatar" src="" alt="Opponent Avatar" class="avatar-lg" />
+            <h3 id="res-opp-name">Opponent</h3>
+            <div class="big-score-line">
+              <strong id="res-opp-score" class="score-num">0</strong>
+              <span class="score-max">/ 100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Winner / Draw Ribbon -->
+        <div id="res-outcome-ribbon" class="outcome-ribbon win">You Win!</div>
+
+        <!-- Detailed Score Breakdown (Typed vs MCQ vs Wrong vs Blank) -->
+        <div class="breakdown-grid">
+          <div class="breakdown-pill">
+            <span class="bd-val text-green" id="bd-typed-correct">0</span>
+            <span class="bd-lbl">Typed Correct (+10)</span>
+          </div>
+          <div class="breakdown-pill">
+            <span class="bd-val text-gold" id="bd-mcq-correct">0</span>
+            <span class="bd-lbl">MCQ Correct (+6)</span>
+          </div>
+          <div class="breakdown-pill">
+            <span class="bd-val text-red" id="bd-incorrect">0</span>
+            <span class="bd-lbl">Incorrect (0)</span>
+          </div>
+          <div class="breakdown-pill">
+            <span class="bd-val muted-text" id="bd-unanswered">0</span>
+            <span class="bd-lbl">Unanswered (0)</span>
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button id="btn-view-review" class="btn btn-nav-blue" type="button">📋 View Details / Review Answers</button>
+          <button id="btn-play-again" class="btn btn-gold" type="button">⚔️ Play Again</button>
+          <button id="btn-results-home" class="btn btn-outline-sm" type="button">🏠 Dashboard</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- S14: REVIEW ANSWERS -->
+    <section id="screen-review" class="screen" aria-label="Review Answers">
+      <header class="sub-header">
+        <button id="btn-back-to-results" class="btn-back" aria-label="Back to Match Results">←</button>
+        <h2>Review Answers</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="review-layout">
+        <!-- Left Column: Question-by-Question Comparison Table -->
+        <div class="review-list-card card-navy">
+          <div class="review-table-head">
+            <span># & Question</span>
+            <span>Your Answer</span>
+            <span>Correct Answer</span>
+            <span>Pts</span>
+          </div>
+          <div id="review-answers-list" class="review-rows-scroll">
+            <!-- Dynamically populated 10 question review rows -->
+          </div>
+        </div>
+
+        <!-- Right Column: Bible Verse for Today Card (Matching Visual Reference) -->
+        <aside class="verse-card card-navy">
+          <div class="emblem-crest small" aria-hidden="true">📖</div>
+          <h3 class="verse-heading">Bible Verse for Today</h3>
+          <blockquote id="daily-verse-text" class="verse-quote">
+            “I can do all things through Christ who strengthens me.”
+          </blockquote>
+          <p id="daily-verse-ref" class="verse-ref">Philippians 4:13</p>
+        </aside>
+      </div>
+    </section>
+
     <!-- S15: MY PROFILE / STATS -->
     <section id="screen-stats" class="screen" aria-label="My Profile and Statistics">
       <header class="sub-header">
