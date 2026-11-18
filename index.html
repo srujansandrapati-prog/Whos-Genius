@@ -132,6 +132,104 @@
         </div>
       </main>
     </section>
+    <!-- S04: CHOOSE GAME MODE -->
+    <section id="screen-mode" class="screen" aria-label="Choose Game Mode">
+      <header class="sub-header">
+        <button class="btn-back" data-back="screen-dashboard" aria-label="Back to Dashboard">←</button>
+        <h2>Choose Game Mode</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="mode-cards-wrap">
+        <article class="card-navy mode-choice-card">
+          <div class="mode-choice-icon" aria-hidden="true">👥</div>
+          <h3>Play with Another Player</h3>
+          <p class="muted-text">Create a private room code or join a friend's room for a live 1v1 Bible duel.</p>
+          <button id="btn-mode-pvp" class="btn btn-gold full-width">Continue</button>
+        </article>
+
+        <article class="card-navy mode-choice-card">
+          <div class="mode-choice-icon" aria-hidden="true">🤖</div>
+          <h3>Play with Bot</h3>
+          <p class="muted-text">Challenge a randomly assigned Bible Bot with a unique personality and fixed difficulty.</p>
+          <button id="btn-mode-bot" class="btn btn-gold full-width">Continue</button>
+        </article>
+      </div>
+    </section>
+
+    <!-- S07: BOT INTRODUCTION -->
+    <section id="screen-bot-intro" class="screen" aria-label="Meet Your Bot Opponent">
+      <header class="sub-header">
+        <button class="btn-back" data-back="screen-mode" aria-label="Back to Mode Selection">←</button>
+        <h2>Play vs Bot</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="bot-intro-wrap card-navy">
+        <p class="brand-tagline">Meet Your Opponent!</p>
+        <div class="bot-avatar-ring">
+          <img id="bot-intro-avatar" src="" alt="Bot Avatar" class="avatar-xl" />
+        </div>
+        <div class="bot-title-row">
+          <h3 id="bot-intro-name" class="bot-name">Daniel</h3>
+          <span id="bot-intro-diff" class="diff-badge diff-hard">Hard</span>
+        </div>
+        <p id="bot-intro-desc" class="bot-desc">A sharp mind and a deep faith. Are you ready for the challenge?</p>
+        <button id="btn-start-bot-select" class="btn btn-gold btn-lg">Let's Play!</button>
+      </div>
+    </section>
+
+    <!-- S08: SELECT 10 QUESTIONS FOR YOUR OPPONENT -->
+    <section id="screen-select-questions" class="screen" aria-label="Select 10 Questions for Your Opponent">
+      <header class="sub-header">
+        <button id="btn-leave-selection" class="btn-back" aria-label="Cancel Match">←</button>
+        <h2>Select 10 Questions for Your Opponent</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <!-- Filter Chips & Search Bar -->
+      <div class="selection-toolbar card-navy">
+        <div id="category-chips" class="chips-scroll" role="tablist" aria-label="Question Categories">
+          <!-- Dynamically populated: All, Old Testament, New Testament + 11 Categories -->
+        </div>
+        <div class="search-box">
+          <input type="search" id="question-search-input" placeholder="Search questions or keywords (e.g. Noah, Moses, miracles)..." aria-label="Search questions" />
+        </div>
+      </div>
+
+      <!-- Main Selection Layout (List + Counter Side Panel) -->
+      <div class="selection-layout">
+        <div class="question-list-panel card-navy">
+          <div id="question-select-list" class="question-select-list" role="listbox" aria-multiselectable="true">
+            <!-- Dynamically populated question rows -->
+          </div>
+          <div class="selection-footer-Left">
+            <button id="btn-auto-select" class="btn btn-purple" type="button">✨ Auto Select Remaining</button>
+            <button id="btn-clear-select" class="btn btn-outline-sm" type="button">Clear All</button>
+          </div>
+        </div>
+
+        <aside class="selection-summary-panel card-navy">
+          <div class="counter-box">
+            <span class="counter-label">Selected</span>
+            <strong id="selected-counter-text" class="counter-value">0/10</strong>
+            <div id="selected-status-icon" class="status-circle" aria-hidden="true">0</div>
+          </div>
+          <p id="selection-helper-msg" class="muted-text sm">Pick 10 challenging questions for <strong id="select-opp-name">your opponent</strong>.</p>
+          <button id="btn-confirm-selection" class="btn btn-gold full-width" disabled>Confirm 10 Questions</button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- S09: SELECTION WAITING / LOCKED -->
+    <section id="screen-selection-locked" class="screen" aria-label="Selection Locked">
+      <div class="waiting-card card-navy">
+        <div class="hourglass-icon" aria-hidden="true">⏳</div>
+        <h2>Your 10 Questions Are Locked!</h2>
+        <p id="selection-waiting-msg" class="muted-text">Waiting for your opponent to finish selecting their 10 questions...</p>
+        <div class="spinner"></div>
+      </div>
+    </section>
 
     <!-- S15: MY PROFILE / STATS -->
     <section id="screen-stats" class="screen" aria-label="My Profile and Statistics">
