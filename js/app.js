@@ -41,7 +41,12 @@ import {
   QUIZ_DURATION_MS
 } from "./multiplayer.js";
 import { QuizEngineController } from "./quiz-engine.js";
+import {
+  finalizeAndRenderMatch,
+  playSoundEffect
+} from "./evaluation-results.js";
 
+// Global Application State
 const state = {
   currentUser: null,
   userProfile: null,
@@ -52,17 +57,24 @@ const state = {
   roomUnsub: null,
   matchUnsub: null,
   quizLaunchedForMatchId: null,
-  authMode: "login"
+  authMode: "login" // "login" | "register"
 };
 
+// Controllers for S08 Question Selection & S10/S11 Quiz Engine
+let questionSelector = null;
+let quizEngine = null;
+
+// Screen Router (S01 - S16)
 export function showScreen(screenId) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   const target = document.getElementById(screenId);
   if (target) target.classList.add("active");
 }
 
+// Toast Notification Helper
 export function showToast(message) {
   const container = document.getElementById("toast-container");
+  if (!container) return;
   const toast = document.createElement("div");
   toast.className = "toast";
   toast.textContent = message;
@@ -70,11 +82,26 @@ export function showToast(message) {
   setTimeout(() => toast.remove(), 3200);
 }
 
-// Initialize Controllers for S08 Question Selection & S10/S11 Quiz Engine
-let questionSelector = null;
-let quizEngine = null;
+// Clean up active listeners and reset match state when returning to Dashboard
+function cleanupActiveMatchState() {
+  if (state.roomUnsub) {
+    state.roomUnsub();
+    state.roomUnsub = null;
+  }
+  if (state.matchUnsub) {
+    state.matchUnsub();
+    state.matchUnsub = null;
+  }
+  if (quizEngine) {
+    quizEngine.stopTimer();
+  }
+  state.activeMatch = null;
+  state.quizLaunchedForMatchId = null;
+}
 
+// Populate S03 Dashboard & Sync S16 Settings UI
 function populateDashboard(profile) {
+  if (!profile) return;
   document.getElementById("dash-avatar").src = profile.photoURL;
   document.getElementById("dash-username").textContent = profile.displayName;
   const total = profile.stats?.totalMatches || 0;
@@ -87,6 +114,7 @@ function populateDashboard(profile) {
   document.getElementById("set-lang").value = settings.language || "bilingual";
 }
 
+// S02: Authentication UI Setup (Google + Email/Password)
 function setupAuthUI() {
   const tabLogin = document.getElementById("tab-login");
   const tabRegister = document.getElementById("tab-register");
@@ -100,12 +128,16 @@ function setupAuthUI() {
     errorEl.classList.add("hidden");
     if (mode === "login") {
       tabLogin.classList.add("active");
+      tabLogin.setAttribute("aria-selected", "true");
       tabRegister.classList.remove("active");
+      tabRegister.setAttribute("aria-selected", "false");
       nameWrap.classList.add("hidden");
       submitBtn.textContent = "Sign In";
     } else {
       tabRegister.classList.add("active");
+      tabRegister.setAttribute("aria-selected", "true");
       tabLogin.classList.remove("active");
+      tabLogin.setAttribute("aria-selected", "false");
       nameWrap.classList.remove("hidden");
       submitBtn.textContent = "Create Account";
     }
@@ -162,9 +194,10 @@ function setupAuthUI() {
   });
 }
 
-// Bot Flow (S07 -> S08 -> S09 -> S10)
+// S07: Start Solo Bot Challenge Flow
 async function startBotFlow() {
   try {
+    cleanupActiveMatchState();
     if (state.botRoster.length === 0) {
       state.botRoster = await ensureBotsSeeded();
     }
@@ -173,7 +206,8 @@ async function startBotFlow() {
     state.activeMatch = {
       mode: "bot",
       botProfile: bot,
-      opponentName: bot.displayName
+      opponentName: bot.displayName,
+      evaluated: false
     };
 
     document.getElementById("bot-intro-avatar").src = bot.avatar;
@@ -184,14 +218,16 @@ async function startBotFlow() {
     diffEl.textContent = bot.fixedDifficulty;
     diffEl.className = `diff-badge diff-${bot.fixedDifficulty.toLowerCase()}`;
 
+    playSoundEffect("click", state.userProfile);
     showScreen("screen-bot-intro");
   } catch (err) {
     showToast(err.message || "Could not load bot roster.");
   }
 }
 
-// Confirm 10 Questions Handler (Both Bot & Multiplayer PvP)
+// S08 -> S09 -> S10: Handle Confirming 10 Questions for Opponent (Bot & PvP)
 async function handleConfirmQuestions(humanSelectedIds) {
+  playSoundEffect("click", state.userProfile);
   showScreen("screen-selection-locked");
 
   if (state.activeMatch?.mode === "bot") {
@@ -258,7 +294,7 @@ async function handleConfirmQuestions(humanSelectedIds) {
   }
 }
 
-// Multiplayer Create/Join & Lobby Setup (S05 & S06)
+// S05 & S06: Multiplayer Create/Join Room & Live Lobby Setup
 function setupMultiplayerUI() {
   const tabCreate = document.getElementById("tab-mp-create");
   const tabJoin = document.getElementById("tab-mp-join");
@@ -273,21 +309,31 @@ function setupMultiplayerUI() {
     joinErrorEl.classList.add("hidden");
     if (mode === "create") {
       tabCreate.classList.add("active");
+      tabCreate.setAttribute("aria-selected", "true");
       tabJoin.classList.remove("active");
+      tabJoin.setAttribute("aria-selected", "false");
       panelCreate.classList.remove("hidden");
       panelJoin.classList.add("hidden");
     } else {
       tabJoin.classList.add("active");
+      tabJoin.setAttribute("aria-selected", "true");
       tabCreate.classList.remove("active");
+      tabCreate.setAttribute("aria-selected", "false");
       panelJoin.classList.remove("hidden");
       panelCreate.classList.add("hidden");
     }
   }
 
-  tabCreate.addEventListener("click", () => switchMpTab("create"));
+  tabCreate.addEventListener("click", () => {
+    switchMpTab("create");
+    if (!state.activeMatch?.roomCode) {
+      openMultiplayerScreen("create");
+    }
+  });
   tabJoin.addEventListener("click", () => switchMpTab("join"));
 
   async function openMultiplayerScreen(initialTab = "create") {
+    cleanupActiveMatchState();
     showScreen("screen-multiplayer");
     switchMpTab(initialTab);
 
@@ -301,7 +347,8 @@ function setupMultiplayerUI() {
           mode: "pvp",
           roomCode: roomData.roomCode,
           role: "host",
-          playerRoleKey: "playerA"
+          playerRoleKey: "playerA",
+          evaluated: false
         };
         codeTextEl.textContent = roomData.roomCode;
         enterLobbyBtn.disabled = false;
@@ -363,7 +410,8 @@ function setupMultiplayerUI() {
         mode: "pvp",
         roomCode,
         role,
-        playerRoleKey: role === "host" ? "playerA" : "playerB"
+        playerRoleKey: role === "host" ? "playerA" : "playerB",
+        evaluated: false
       };
       enterRoomLobby(roomCode, role);
     } catch (err) {
@@ -393,11 +441,12 @@ function setupMultiplayerUI() {
   });
 
   const handleLeaveLobby = async () => {
-    if (state.roomUnsub) { state.roomUnsub(); state.roomUnsub = null; }
-    if (state.activeMatch?.roomCode) {
-      await leaveRoomLobby(state.activeMatch.roomCode, state.activeMatch.role);
+    const code = state.activeMatch?.roomCode;
+    const role = state.activeMatch?.role;
+    cleanupActiveMatchState();
+    if (code) {
+      await leaveRoomLobby(code, role);
     }
-    state.activeMatch = null;
     showScreen("screen-dashboard");
   };
 
@@ -405,6 +454,7 @@ function setupMultiplayerUI() {
   document.getElementById("btn-leave-lobby-top").addEventListener("click", handleLeaveLobby);
 }
 
+// S06: Live Room Lobby Subscription
 function enterRoomLobby(roomCode, role) {
   if (state.roomUnsub) state.roomUnsub();
   showScreen("screen-lobby");
@@ -415,15 +465,17 @@ function enterRoomLobby(roomCode, role) {
     state.activeMatch.latestRoom = room;
 
     if (room.status === "CANCELLED") {
-      if (state.roomUnsub) { state.roomUnsub(); state.roomUnsub = null; }
-      state.activeMatch = null;
+      cleanupActiveMatchState();
       showToast("The host closed the room.");
       showScreen("screen-dashboard");
       return;
     }
 
     if (room.status === "SELECTING_QUESTIONS" && room.matchId) {
-      if (state.roomUnsub) { state.roomUnsub(); state.roomUnsub = null; }
+      if (state.roomUnsub) {
+        state.roomUnsub();
+        state.roomUnsub = null;
+      }
       state.activeMatch.matchId = room.matchId;
       const oppName = role === "host" ? room.guest?.displayName : room.host?.displayName;
       state.activeMatch.opponentName = oppName || "Opponent";
@@ -433,15 +485,18 @@ function enterRoomLobby(roomCode, role) {
       return;
     }
 
+    // Update Host Slot UI
     if (room.host) {
       document.getElementById("lobby-host-avatar").src = room.host.photoURL;
       document.getElementById("lobby-host-name").textContent = room.host.displayName;
       const hostReadyEl = document.getElementById("lobby-host-ready");
       const isHostReady = room.host.ready && room.host.connected !== false;
-      hostReadyEl.textContent = room.host.connected === false ? "Reconnecting..." : isHostReady ? "✓ Ready" : "Not Ready";
+      hostReadyEl.textContent =
+        room.host.connected === false ? "Reconnecting..." : isHostReady ? "✓ Ready" : "Not Ready";
       hostReadyEl.className = `ready-pill ${isHostReady ? "ready" : "waiting"}`;
     }
 
+    // Update Guest Slot UI
     const guestEmptyEl = document.getElementById("lobby-guest-empty");
     const guestAvatarEl = document.getElementById("lobby-guest-avatar");
     const guestNameEl = document.getElementById("lobby-guest-name");
@@ -453,7 +508,8 @@ function enterRoomLobby(roomCode, role) {
       guestAvatarEl.classList.remove("hidden");
       guestNameEl.textContent = room.guest.displayName;
       const isGuestReady = room.guest.ready && room.guest.connected !== false;
-      guestReadyEl.textContent = room.guest.connected === false ? "Reconnecting..." : isGuestReady ? "✓ Ready" : "Not Ready";
+      guestReadyEl.textContent =
+        room.guest.connected === false ? "Reconnecting..." : isGuestReady ? "✓ Ready" : "Not Ready";
       guestReadyEl.className = `ready-pill ${isGuestReady ? "ready" : "waiting"}`;
     } else {
       guestEmptyEl.classList.remove("hidden");
@@ -463,9 +519,18 @@ function enterRoomLobby(roomCode, role) {
       guestReadyEl.className = "ready-pill waiting";
     }
 
-    const bothReady = !!(room.host?.ready && room.guest?.ready && room.host?.connected !== false && room.guest?.connected !== false);
+    const bothReady = !!(
+      room.host?.ready &&
+      room.guest?.ready &&
+      room.host?.connected !== false &&
+      room.guest?.connected !== false
+    );
     document.getElementById("lobby-status-heading").textContent =
-      !room.guest ? "Waiting for opponent..." : bothReady ? "Both players ready!" : "Waiting for players to mark ready...";
+      !room.guest
+        ? "Waiting for opponent..."
+        : bothReady
+        ? "Both players ready!"
+        : "Waiting for players to mark ready...";
 
     const startBtn = document.getElementById("btn-host-start-match");
     if (role === "host") {
@@ -477,6 +542,7 @@ function enterRoomLobby(roomCode, role) {
   });
 }
 
+// Listen to /matches/{matchId} for Synchronized Quiz Start & Completion
 function listenToPvpMatchProgress(matchId) {
   if (state.matchUnsub) state.matchUnsub();
   state.matchUnsub = subscribeToMatch(matchId, async (match) => {
@@ -486,9 +552,11 @@ function listenToPvpMatchProgress(matchId) {
     const myRoleKey = state.activeMatch.playerRoleKey;
     const oppRoleKey = myRoleKey === "playerA" ? "playerB" : "playerA";
 
-    // Launch 7-Minute Quiz once both players lock their 10 questions
+    // Launch 7-Minute Quiz simultaneously when both sets are locked
     if (
-      (match.state === "IN_PROGRESS" || match.state === "PLAYER_A_SUBMITTED" || match.state === "PLAYER_B_SUBMITTED") &&
+      (match.state === "IN_PROGRESS" ||
+        match.state === "PLAYER_A_SUBMITTED" ||
+        match.state === "PLAYER_B_SUBMITTED") &&
       match.startAt &&
       state.quizLaunchedForMatchId !== matchId
     ) {
@@ -510,7 +578,7 @@ function listenToPvpMatchProgress(matchId) {
       });
     }
 
-    // When both players submit (or timer finishes), proceed to evaluation
+    // When both players submit or deadline expires, compute & reveal results (S13)
     if (match.state === "COMPLETED") {
       quizEngine.stopTimer();
       await handleMatchEvaluation();
@@ -518,12 +586,27 @@ function listenToPvpMatchProgress(matchId) {
   });
 }
 
-// Hook for Sub-Task 6 (Score Evaluation, Match Results S13 & Answer Review S14)
+// S13 & S14: Evaluate Scores, Update Stats, and Show Match Results
 async function handleMatchEvaluation() {
-  showToast("Duel completed! Finalizing results...");
-  // Sub-Task 6 will compute final scores, update stats, and display Screen S13 & S14
+  if (!state.activeMatch?.matchId || state.activeMatch.evaluated) return;
+  state.activeMatch.evaluated = true;
+
+  try {
+    await finalizeAndRenderMatch({
+      matchId: state.activeMatch.matchId,
+      activeMatch: state.activeMatch,
+      currentUser: state.currentUser,
+      userProfile: state.userProfile,
+      questionBank: state.questionBank
+    });
+    populateDashboard(state.userProfile);
+    showScreen("screen-results");
+  } catch (err) {
+    showToast(err.message || "Error calculating match results.");
+  }
 }
 
+// Support QR Code / Share Link Auto-Join (?room=ABCDEF)
 function checkUrlRoomInvite() {
   const params = new URLSearchParams(window.location.search);
   const invitedCode = params.get("room");
@@ -531,16 +614,23 @@ function checkUrlRoomInvite() {
     showScreen("screen-multiplayer");
     document.getElementById("tab-mp-join").click();
     document.getElementById("input-join-code").value = invitedCode.trim().toUpperCase();
+    // Clean query string so refreshing doesn't force-open join screen repeatedly
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 }
 
+// Global Screen Navigation & Action Buttons
 function setupNavigation() {
-  document.querySelectorAll("[data-back]").forEach(btn => {
-    btn.addEventListener("click", () => showScreen(btn.dataset.back));
+  document.querySelectorAll("[data-back]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      playSoundEffect("click", state.userProfile);
+      showScreen(btn.dataset.back);
+    });
   });
 
   const openStats = async () => {
     if (!state.userProfile) return;
+    playSoundEffect("click", state.userProfile);
     renderStatsScreen(state.userProfile);
     showScreen("screen-stats");
     await loadMatchHistory(state.currentUser.uid);
@@ -550,35 +640,68 @@ function setupNavigation() {
   document.getElementById("btn-nav-stats").addEventListener("click", openStats);
   document.getElementById("btn-tile-stats").addEventListener("click", openStats);
 
-  const openSettings = () => showScreen("screen-settings");
+  const openSettings = () => {
+    playSoundEffect("click", state.userProfile);
+    showScreen("screen-settings");
+  };
   document.getElementById("btn-nav-settings").addEventListener("click", openSettings);
   document.getElementById("btn-tile-settings").addEventListener("click", openSettings);
 
   document.getElementById("btn-logout").addEventListener("click", async () => {
-    if (state.roomUnsub) { state.roomUnsub(); state.roomUnsub = null; }
-    if (state.matchUnsub) { state.matchUnsub(); state.matchUnsub = null; }
-    if (quizEngine) quizEngine.stopTimer();
+    cleanupActiveMatchState();
     await logoutUser();
     showToast("Logged out");
   });
 
+  // Mode Selection & Bot Start
   document.getElementById("btn-play-bot").addEventListener("click", startBotFlow);
   document.getElementById("btn-mode-bot").addEventListener("click", startBotFlow);
-  document.getElementById("btn-play-pvp").addEventListener("click", () => showScreen("screen-mode"));
+  document.getElementById("btn-play-pvp").addEventListener("click", () => {
+    playSoundEffect("click", state.userProfile);
+    showScreen("screen-mode");
+  });
 
   document.getElementById("btn-start-bot-select").addEventListener("click", () => {
+    playSoundEffect("click", state.userProfile);
     const oppName = state.activeMatch?.botProfile?.displayName || "Bot";
     questionSelector.resetForNewMatch(oppName);
     showScreen("screen-select-questions");
   });
 
   document.getElementById("btn-leave-selection").addEventListener("click", () => {
-    if (state.matchUnsub) { state.matchUnsub(); state.matchUnsub = null; }
-    state.activeMatch = null;
+    cleanupActiveMatchState();
     showScreen("screen-dashboard");
+  });
+
+  // S13 Match Results & S14 Review Answers Navigation
+  document.getElementById("btn-view-review").addEventListener("click", () => {
+    playSoundEffect("click", state.userProfile);
+    showScreen("screen-review");
+  });
+
+  document.getElementById("btn-back-to-results").addEventListener("click", () => {
+    playSoundEffect("click", state.userProfile);
+    showScreen("screen-results");
+  });
+
+  document.getElementById("btn-results-home").addEventListener("click", () => {
+    playSoundEffect("click", state.userProfile);
+    cleanupActiveMatchState();
+    showScreen("screen-dashboard");
+  });
+
+  document.getElementById("btn-play-again").addEventListener("click", () => {
+    const lastMode = state.activeMatch?.mode;
+    cleanupActiveMatchState();
+    if (lastMode === "bot") {
+      startBotFlow();
+    } else {
+      showScreen("screen-mode");
+    }
   });
 }
 
+// Monitor Firebase Connection Status Banner
 function monitorConnection() {
   const connectedRef = ref(db, ".info/connected");
   const banner = document.getElementById("offline-banner");
@@ -591,6 +714,7 @@ function monitorConnection() {
   });
 }
 
+// Application Entry Point
 function init() {
   questionSelector = new QuestionSelectorController({
     getQuestionBank: () => state.questionBank,
@@ -629,6 +753,7 @@ function init() {
           err?.message || "Could not load your player profile. Check your Firebase Realtime Database rules.";
       }
     } else {
+      cleanupActiveMatchState();
       state.currentUser = null;
       state.userProfile = null;
       showScreen("screen-auth");
