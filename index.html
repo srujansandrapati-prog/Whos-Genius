@@ -336,6 +336,108 @@
       </div>
     </section>
 
+        <!-- S10 & S11: LIVE 7-MINUTE QUIZ SCREEN (TYPED & MCQ MODES) -->
+    <section id="screen-quiz" class="screen" aria-label="Live Bible Quiz Duel">
+      <!-- Top Quiz Status Bar -->
+      <header class="quiz-top-bar card-navy">
+        <div id="quiz-timer-pill" class="timer-pill" role="timer" aria-live="off">
+          <span aria-hidden="true">⏱</span>
+          <strong id="quiz-timer-text">07:00</strong>
+          <span class="timer-sub">left</span>
+        </div>
+
+        <div class="quiz-opponent-tag">
+          <span>Duel vs <strong id="quiz-opp-name" class="text-gold">Opponent</strong></span>
+        </div>
+
+        <div class="quiz-counter-tag">
+          Question <strong id="quiz-q-index">1</strong> / 10
+        </div>
+      </header>
+
+      <!-- Question Status Strip (1 to 10 Navigation Pills with Non-Color Icons) -->
+      <nav id="quiz-nav-strip" class="quiz-nav-strip" aria-label="Question Navigation">
+        <!-- Populated dynamically: 1..10 pills with ✓ (answered), • (unanswered), ⚑ (review) -->
+      </nav>
+
+      <!-- Main Quiz Content Card -->
+      <div class="quiz-main-card">
+        <div class="quiz-visual-banner">
+          <div class="quiz-meta-row">
+            <span id="quiz-q-category" class="q-badge-cat">Genesis & Patriarchs</span>
+            <span id="quiz-q-points-badge" class="q-badge-pts">Typed Mode • Max 10 pts</span>
+          </div>
+          <h2 id="quiz-q-text" class="quiz-question-heading">Who built the ark?</h2>
+        </div>
+
+        <div class="quiz-interaction-body">
+          <!-- S10: TYPED ANSWER PANEL -->
+          <div id="quiz-typed-panel" class="quiz-mode-panel">
+            <label for="quiz-typed-input" class="sr-only">Type your answer (English or Telugu)</label>
+            <input
+              type="text"
+              id="quiz-typed-input"
+              class="quiz-text-input"
+              placeholder="Type your answer in English or తెలుగు..."
+              autocomplete="off"
+            />
+
+            <div class="or-divider"><span>— OR —</span></div>
+
+            <button id="btn-show-mcq" class="btn btn-purple" type="button">
+              ☰ Show MCQ Options (Max 6 pts)
+            </button>
+          </div>
+
+          <!-- S11: 4-OPTION MCQ PANEL -->
+          <div id="quiz-mcq-panel" class="quiz-mode-panel hidden">
+            <div id="quiz-mcq-list" class="mcq-options-grid" role="radiogroup" aria-label="Multiple Choice Options">
+              <!-- Populated dynamically with 4 options -->
+            </div>
+          </div>
+
+          <!-- Footer Navigation Controls -->
+          <div class="quiz-footer-nav">
+            <div class="quiz-footer-left">
+              <button id="btn-mark-review" class="btn btn-outline-dark" type="button">⚑ Mark for Review</button>
+            </div>
+            <div class="quiz-footer-right">
+              <button id="btn-quiz-prev" class="btn btn-nav-gray" type="button">← Previous</button>
+              <button id="btn-quiz-next" class="btn btn-nav-blue" type="button">Next →</button>
+              <button id="btn-quiz-submit-open" class="btn btn-gold" type="button">Submit Quiz ✓</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Early Submit Confirmation Modal -->
+      <div id="quiz-submit-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="submit-modal-title">
+        <div class="modal-card card-navy">
+          <h3 id="submit-modal-title">Submit Your Quiz?</h3>
+          <p id="submit-modal-summary" class="muted-text">You have answered 10 of 10 questions.</p>
+          <p class="muted-text sm">Once submitted, your answers are locked and cannot be edited.</p>
+          <div class="modal-actions">
+            <button id="btn-cancel-submit" class="btn btn-outline-sm" type="button">Return to Quiz</button>
+            <button id="btn-confirm-final-submit" class="btn btn-gold" type="button">Confirm & Lock Answers</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- S12: SUBMITTED / WAITING FOR OPPONENT -->
+    <section id="screen-submitted" class="screen" aria-label="Quiz Submitted">
+      <div class="waiting-card card-navy">
+        <div class="hourglass-icon" aria-hidden="true">⌛</div>
+        <h2 class="text-gold">Your quiz is submitted!</h2>
+        <p id="submitted-waiting-text" class="muted-text">Waiting for your opponent to finish...</p>
+        <div id="submitted-timer-wrap" class="submitted-timer-pill">
+          <span>Match deadline remaining: </span>
+          <strong id="submitted-timer-text" class="text-gold">--:--</strong>
+        </div>
+        <div class="spinner"></div>
+      </div>
+    </section>
+
     <!-- S15: MY PROFILE / STATS -->
     <section id="screen-stats" class="screen" aria-label="My Profile and Statistics">
       <header class="sub-header">
