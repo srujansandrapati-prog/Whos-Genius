@@ -1,4 +1,6 @@
 import { auth, db, onAuthStateChanged, ref, onValue } from "./firebase-config.js";
+import { ensureQuestionBankSeeded } from "./question-bank.js";
+
 import {
   ensureUserProfile,
   loginWithGoogle,
@@ -12,7 +14,8 @@ import { renderStatsScreen, loadMatchHistory, bindSettingsControls } from "./pro
 const state = {
   currentUser: null,
   userProfile: null,
-  authMode: "login" // "login" | "register"
+  questionBank: [],
+  authMode: "login"
 };
 
 export function showScreen(screenId) {
@@ -176,6 +179,7 @@ function init() {
       try {
         state.currentUser = user;
         state.userProfile = await ensureUserProfile(user);
+        state.questionBank = await ensureQuestionBankSeeded();
         populateDashboard(state.userProfile);
         showScreen("screen-dashboard");
       } catch (err) {
