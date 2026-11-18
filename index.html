@@ -157,6 +157,111 @@
       </div>
     </section>
 
+        <!-- S05: MULTIPLAYER CREATE / JOIN ROOM -->
+    <section id="screen-multiplayer" class="screen" aria-label="Multiplayer Create or Join Room">
+      <header class="sub-header">
+        <button class="btn-back" data-back="screen-mode" aria-label="Back to Choose Game Mode">←</button>
+        <h2>Multiplayer</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="mp-container card-navy">
+        <div class="auth-tabs" role="tablist">
+          <button id="tab-mp-create" class="tab-btn active" role="tab" aria-selected="true">Create Room</button>
+          <button id="tab-mp-join" class="tab-btn" role="tab" aria-selected="false">Join Room</button>
+        </div>
+
+        <!-- CREATE ROOM PANEL -->
+        <div id="panel-mp-create" class="mp-panel">
+          <div class="mp-create-grid">
+            <div class="room-code-card">
+              <span class="muted-text sm">Your Room Code</span>
+              <div class="code-display-row">
+                <strong id="generated-room-code" class="room-code-text">------</strong>
+                <button id="btn-copy-code" class="icon-btn-gold" type="button" title="Copy Room Code" aria-label="Copy Room Code">📋</button>
+              </div>
+              <p class="muted-text sm">Share this code with your friend to join the room</p>
+              <div class="mp-create-actions">
+                <button id="btn-share-room" class="btn btn-outline-sm full-width" type="button">🔗 Share Invite Link</button>
+                <button id="btn-enter-created-lobby" class="btn btn-gold full-width" type="button" disabled>I'm Ready — Enter Lobby</button>
+              </div>
+            </div>
+
+            <div class="qr-card">
+              <div id="room-qr-wrap" class="qr-box">
+                <span class="muted-text sm">Generating QR...</span>
+              </div>
+              <span class="qr-caption">Scan to join</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- JOIN ROOM PANEL -->
+        <div id="panel-mp-join" class="mp-panel hidden">
+          <form id="form-join-room" class="join-form" novalidate>
+            <label for="input-join-code" class="join-label">Enter 6-Character Room Code</label>
+            <input
+              type="text"
+              id="input-join-code"
+              class="code-input"
+              placeholder="e.g. 7F4K2Q"
+              maxlength="6"
+              autocomplete="off"
+              required
+            />
+            <p id="join-room-error" class="form-error hidden" role="alert"></p>
+            <button type="submit" id="btn-submit-join" class="btn btn-gold full-width">Join Room</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- S06: ROOM LOBBY -->
+    <section id="screen-lobby" class="screen" aria-label="Room Lobby">
+      <header class="sub-header">
+        <button id="btn-leave-lobby-top" class="btn-back" aria-label="Leave Room">←</button>
+        <h2>Room Lobby</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="lobby-container card-navy">
+        <div class="lobby-header">
+          <h3 id="lobby-status-heading">Waiting for opponent...</h3>
+          <div class="lobby-code-bar">
+            <span>Share the room code: <strong id="lobby-room-code" class="text-gold">------</strong></span>
+            <button id="btn-lobby-copy" class="btn-tiny-gold" type="button">Copy</button>
+          </div>
+        </div>
+
+        <div class="lobby-slots-grid">
+          <!-- Host Slot -->
+          <div class="player-slot-card">
+            <img id="lobby-host-avatar" src="" alt="Host Avatar" class="avatar-lg" />
+            <h4 id="lobby-host-name">Host</h4>
+            <span class="role-tag">Host</span>
+            <div id="lobby-host-ready" class="ready-pill waiting">Waiting...</div>
+          </div>
+
+          <div class="vs-divider" aria-hidden="true">VS</div>
+
+          <!-- Guest Slot -->
+          <div class="player-slot-card">
+            <div id="lobby-guest-empty" class="guest-empty-circle" aria-hidden="true">+</div>
+            <img id="lobby-guest-avatar" src="" alt="Opponent Avatar" class="avatar-lg hidden" />
+            <h4 id="lobby-guest-name">Waiting...</h4>
+            <span class="role-tag">Challenger</span>
+            <div id="lobby-guest-ready" class="ready-pill waiting">Not Joined</div>
+          </div>
+        </div>
+
+        <div class="lobby-actions-bar">
+          <button id="btn-leave-room" class="btn btn-danger" type="button">Leave Room</button>
+          <button id="btn-toggle-ready" class="btn btn-purple" type="button">Mark Ready ✓</button>
+          <button id="btn-host-start-match" class="btn btn-gold hidden" type="button" disabled>Start Duel →</button>
+        </div>
+      </div>
+    </section>
+
     <!-- S07: BOT INTRODUCTION -->
     <section id="screen-bot-intro" class="screen" aria-label="Meet Your Bot Opponent">
       <header class="sub-header">
